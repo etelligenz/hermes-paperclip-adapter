@@ -415,8 +415,16 @@ export async function execute(
   };
 
   if (ctx.runId) env.PAPERCLIP_RUN_ID = ctx.runId;
-  if ((ctx as any).authToken && !env.PAPERCLIP_API_KEY)
-    env.PAPERCLIP_API_KEY = (ctx as any).authToken;
+
+  // Forward the session auth token so the Hermes child process can
+  // authenticate back to the Paperclip management API.
+  // A fresh session token always takes precedence over a stale env var.
+  const ctxRecord = ctx as unknown as Record<string, unknown>;
+  const authToken =
+    typeof ctxRecord.authToken === "string" ? ctxRecord.authToken : undefined;
+  if (authToken) {
+    env.PAPERCLIP_API_KEY = authToken;
+  }
   const taskId = cfgString(ctx.config?.taskId);
   if (taskId) env.PAPERCLIP_TASK_ID = taskId;
 
